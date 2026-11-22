@@ -5,10 +5,12 @@ from time import sleep
 pygame.font.init()
 pygame.mixer.init()
 
-NOM = pygame.mixer.Sound("./sounds/nom.mp3")
 
-N = 16
+N = 12
 WIDTH, HEIGHT = 800, 800
+ADMIN = True
+HIGH = True
+
 WIDTH, HEIGHT = WIDTH + (N - WIDTH % N), HEIGHT + (N - HEIGHT % N) # Fix borders
 w, h = WIDTH // N, HEIGHT // N
 POSX, POSY = 0, 0
@@ -29,12 +31,28 @@ FONT = pygame.font.SysFont("comicsans", 20)
 FONTCOLOR = "white"
 SOUND = True
 
-ADMIN = True
+try:
+    NOM = pygame.mixer.Sound("../sounds/nom.mp3")
+    HSSOUND = pygame.mixer.Sound("../sounds/snakehs.mp3")
+except FileNotFoundError:
+    SOUND = False
+
 START_DIR = -1
 PORTALS = True
 DOUBLEFOOD = 50 + N
 TRIPLEFOOD = 150 + N
 WIN_REQ = N*N-1
+HS = 0 if HIGH is True else None
+if HS is not None:
+    try:
+        with open("snakeHS.txt","r") as f:
+            HS = int(f.read())
+    except:
+        try:
+            with open("snakeHS.txt","x") as f:
+                f.write("0")
+        except:
+            HS = None
 
 class Cell:
     def __init__(self, x: int, y: int):
@@ -83,7 +101,7 @@ class Board:
         options = []
         for i in range(N):
             for j in range(N):
-                if not self.grid[i][j].snake and not self.grid[i][j].food: 
+                if not self.grid[i][j] in self.snake.body and not self.grid[i][j].food: 
                     options.append(self.grid[i][j])
         for _ in range(self.food-self.currentfood):
             try: x = random.choice(options)
@@ -103,8 +121,15 @@ class Board:
         for i in range(a):
             for j in range(b):
                 self.grid[i][j].draw()
+        if HS is not None:
+            for i in range(a):
+                for j in range(b):
+                    self.grid[-i][j].draw()
+            hs = FONT.render(f"High Score: {str(HS)}", True, FONTCOLOR)
+            win.blit(hs, (WIDTH-hs.get_width()-5, 5))
         sc = FONT.render(f"Score: {str(score)}", True, FONTCOLOR)
         win.blit(sc, (5, 5))
+
 
 class Snake:
     def __init__(self, board: Board, x: int , y: int):
@@ -211,6 +236,7 @@ class Game:
         global BORDER, PORTALS,SOUND
         self.board.draw()
         self.board.update_score(1)
+        UPDATING = True
         if self.snake.inv:
             global SNAKE, SNAKEBORDER
             SNAKE = INVINCIBILITY
@@ -246,19 +272,24 @@ class Game:
                         moved = True
                     elif event.key == pygame.K_SPACE and ADMIN:
                         # Toggle portals
+                        UPDATING = False
                         PORTALS = not PORTALS
                         print(f"Portals toggled {'ON' if PORTALS else 'OFF'}")
                     elif event.key == pygame.K_i and ADMIN:
                         # Toggle invincibility
+                        UPDATING = False
                         self.snake.inv = not self.snake.inv
                         SNAKE = INVINCIBILITY if self.snake.inv else SNAKECOLOR
                         SNAKEBORDER = INVINCIBILITY_BORDER if self.snake.inv else SNAKEBORDERCOLOR
+                        self.board.draw()
                         if ADMIN: print(f"Invincibility toggled {'ON' if self.snake.inv else 'OFF'}")
                     elif event.key == pygame.K_k and ADMIN:
                         # Increase snake size
+                        UPDATING = False
                         self.snake.eat(self.snake.head, True, False)
                     elif event.key == pygame.K_l and self.snake.size > 1 and ADMIN:
                         # Decrease snake size
+                        UPDATING = False
                         self.snake.size -= 1
                         t = self.snake.body.popleft()
                         t.snake = False
@@ -269,9 +300,11 @@ class Game:
                         SOUND = not SOUND
                     elif event.key == pygame.K_o and ADMIN:
                         # Increase game speed
+                        UPDATING = False
                         self.speed += 1
                     elif event.key == pygame.K_p and self.speed > 1 and ADMIN:
                         # Decrease game speed
+                        UPDATING = False
                         self.speed -= 1
                     elif event.key == pygame.K_v and ADMIN:
                         # Check game speed
@@ -281,6 +314,7 @@ class Game:
                         BORDER = not BORDER
                     elif event.key == pygame.K_x and ADMIN:
                         # Instant win
+                        UPDATING = False
                         self.snake.size = WIN_REQ
                         self.snake.inv = True
                     elif event.key == pygame.K_r:
@@ -297,16 +331,17 @@ class Game:
                 if self.score == WIN_REQ:
                     self.score += 1
                     self.board.update_score(self.score)
+                    if SOUND: pygame.mixer.Sound.play(HSSOUND)
                     for c in reversed(self.snake.body):
                         c.draw(WINCOLOR)
                         if BORDER: c.draw(WINBORDER, BORDERSIZE)
                         pygame.display.update()
                         sleep(round(3/len(self.snake.body), 2))
-                        
                     self.run = False
                     break
                 if not stat:
                     self.run = False
+                    if SOUND and HS is not None and self.score > HS: pygame.mixer.Sound.play(HSSOUND)
                     for c in reversed(self.snake.body):
                         c.draw(LOSECOLOR)
                         if BORDER: c.draw(LOSEBORDER, BORDERSIZE)
@@ -315,7 +350,14 @@ class Game:
                     break
                 self.board.update_score(self.score)
                 pygame.display.update()
-        print(f"Game over! Final score: {self.score}")
+        print(f"\nGame over! Final score: {self.score}")
+        if HS is not None and self.score > HS and UPDATING:
+            print("New high score!")
+            try:
+                with open("snakeHS.txt","w") as f:
+                    f.write(str(self.score))
+            except:
+                pass
         if self.score >= WIN_REQ: print(f"Congratulations, you won in the {N}x{N} board!")
         pygame.quit()
 
