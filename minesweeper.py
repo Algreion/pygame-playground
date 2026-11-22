@@ -4,7 +4,7 @@ os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
 pygame.font.init()
 
-CUSTOM = (16,16,225) # (Width, Height, Mines)
+CUSTOM = (16,16,200) # (Width, Height, Mines)
 CLEAR = True # Clears all safe cells
 INFO = (True, True) # (Flag count, timer)
 ADMIN = True # Enables certain commands
@@ -83,21 +83,30 @@ def mainloop(w: int, h: int, mines: int, cont = None) -> int:
                         res = board
                     running = False
                     break
-                elif event.key == pygame.K_h and ADMIN and not first:
+                elif event.key in [pygame.K_h,pygame.K_j]  and ADMIN and not first:
                     x,y = pygame.mouse.get_pos()
                     x,y = (x-GAPX)//board.cellw, (y-GAPY)//board.cellh
                     if not (0<=x<board.w) or not (0<=y<board.h): continue
-                    cell = board[(x,y)]
-                    if cell.shown: continue
-                    if cell.hint == -1: cell.flag = True
+                    cells = []
+                    if event.key == pygame.K_h:
+                        cells.append(board[(x,y)])
                     else:
-                        if cell.flag: cell.flag = False
-                        if CLEAR: board.clear(cell)
-                        else: cell.shown = True
+                        cells.extend([board[(x,y)]]+board[(x,y)].adj(board.board))
+                    for cell in cells:
+                        if cell.shown: continue
+                        if cell.hint == -1:
+                            if not cell.flag: board.flags -= 1
+                            cell.flag = True
+                        else:
+                            if cell.flag: cell.flag = False;board.flags+=1
+                            if CLEAR: board.clear(cell)
+                            else: cell.shown = True
                     board.draw(update=True,sec=now)
                     if board.checkwin() and running:
                         winning = True
                         buttons = board.drawwin(sec=now)
+                        diff = 'Easy' if board.w==board.h==9 and board.mines==10 else 'Intermediate' if board.w==board.h==16 and board.mines==40 else 'Expert' if board.w==board.h==25 and board.mines==125 else f'Custom ({board.w}x{board.h}, {board.mines} mines)'
+                        print(f"Completed {diff} Minesweeper in {now//60:02d}:{now%60:02d}.")
                         while winning:
                             for event in pygame.event.get():
                                 if event.type == pygame.QUIT:
@@ -196,6 +205,8 @@ def mainloop(w: int, h: int, mines: int, cont = None) -> int:
                 if board.checkwin() and running:
                     winning = True
                     buttons = board.drawwin(sec=now)
+                    diff = 'Easy' if board.w==board.h==9 and board.mines==10 else 'Intermediate' if board.w==board.h==16 and board.mines==40 else 'Expert' if board.w==board.h==25 and board.mines==125 else f'Custom ({board.w}x{board.h}, {board.mines} mines)'
+                    print(f"Completed {diff} Minesweeper in {now//60:02d}:{now%60:02d}!")
                     while winning:
                         for event in pygame.event.get():
                             if event.type == pygame.QUIT:
