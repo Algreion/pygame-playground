@@ -171,9 +171,13 @@ SORTED_COLOR = "white"
 TXT_COLOR = "white"
 BG = "black"
 TIME = 0.001
+SOUND = True
 local = os.path.dirname(__file__)
-BEEP = pygame.mixer.Sound(os.path.join(local, "sounds/blip.wav"))
-WOP = pygame.mixer.Sound(os.path.join(local, "sounds/wop.wav"))
+try:
+    BEEP = pygame.mixer.Sound(os.path.join(local, "sounds/blip.wav"))
+    WOP = pygame.mixer.Sound(os.path.join(local, "sounds/wop.wav"))
+except FileNotFoundError:
+    SOUND = False
 
 def generate_array():
     arr = list(range(1, TOTAL_RECTS + 1))
@@ -200,7 +204,6 @@ def draw(win, arr, end=False, sorted_indices=set(), sort=None,c=0):
         if end:
             time.sleep(TIME//2)
             pygame.display.update()
-    if end: pygame.mixer.Sound.play(WOP)
     pygame.display.update()
 
 def bubblesort(win, t, sound):
@@ -221,6 +224,7 @@ def bubblesort(win, t, sound):
         sorted_indices.add(len(t)-iterations)
         iterations += 1
     draw(win, t, True, sorted_indices, sort="Bubblesort")
+    if sound: pygame.mixer.Sound.play(WOP)
     return t
 def insertionsort(win, t, sound):
     for i in range(1,len(t)):
@@ -236,6 +240,7 @@ def insertionsort(win, t, sound):
         if sound: pygame.mixer.Sound.play(BEEP)
     sorted_indices = set(range(len(t)))
     draw(win, t, True, sorted_indices, sort="Insertion Sort")
+    if sound: pygame.mixer.Sound.play(WOP)
     return t
 def quicksort(win, arr, sound, start=None, end=None):
     if start is None:
@@ -265,6 +270,7 @@ def quicksort(win, arr, sound, start=None, end=None):
     
     if start == 0 and end == len(arr) - 1: # First call stack, naturally finishes last
         draw(win, arr, True, set(range(len(arr))), sort="Quick Sort")
+        if sound: pygame.mixer.Sound.play(WOP)
     return arr
 def mergesort(win, arr, sound, start=None, end=None):
     if start is None:
@@ -310,6 +316,7 @@ def mergesort(win, arr, sound, start=None, end=None):
     
     if start == 0 and end == len(arr):
         draw(win, arr, True, set(range(len(arr))), sort="Merge Sort")
+        if sound: pygame.mixer.Sound.play(WOP)
     return arr
 def selectionsort(win, arr, sound):
     for i in range(len(arr)):
@@ -326,6 +333,7 @@ def selectionsort(win, arr, sound):
         time.sleep(TIME)
     
     draw(win, arr, True, set(range(len(arr))), sort="Selection Sort")
+    if sound: pygame.mixer.Sound.play(WOP)
     return arr
 def shellsort(win, arr, sound):
     n = len(arr) 
@@ -347,6 +355,7 @@ def shellsort(win, arr, sound):
         gap //= 2 # Redo with half the gap
     
     draw(win, arr, True, set(range(len(arr))), sort="Shell Sort")
+    if sound: pygame.mixer.Sound.play(WOP)
     return arr
 def heapsort(win, arr, sound):
     def heapify(n, i): # Build an actual max heap
@@ -380,6 +389,7 @@ def heapsort(win, arr, sound):
         if sound: pygame.mixer.Sound.play(BEEP)
 
     draw(win, arr, True, set(range(len(arr))), sort="Heap Sort")
+    if sound: pygame.mixer.Sound.play(WOP)
     return arr
 def cocktailsort(win, arr, sound):
     n = len(arr)
@@ -423,6 +433,7 @@ def cocktailsort(win, arr, sound):
         start += 1 # First element is sorted
 
     draw(win, arr, True, set(range(len(arr))), sort="Cocktail Sort")
+    if sound: pygame.mixer.Sound.play(WOP)
     return arr
 def combsort(win, arr, sound):
     n = len(arr)
@@ -445,6 +456,7 @@ def combsort(win, arr, sound):
                 time.sleep(TIME)
     
     draw(win, arr, True, set(range(len(arr))), sort="Comb Sort")
+    if sound: pygame.mixer.Sound.play(WOP)
     return arr
 def cyclesort(win, arr, sound):
     # O(n^2), O(1) memory | Unstable
@@ -489,6 +501,7 @@ def cyclesort(win, arr, sound):
             time.sleep(TIME)
     
     draw(win, arr, True, set(range(len(arr))), sort="Cycle Sort")
+    if sound: pygame.mixer.Sound.play(WOP)
     return arr
 def bogosort(win, arr, sound):
     wait_time = random.uniform(1, 30)
@@ -528,19 +541,20 @@ def pancakesort(win, arr, sound):
             flip(arr, size)
     
     draw(win, arr, True, set(range(len(arr))), sort="Pancake Sort")
+    if sound: pygame.mixer.Sound.play(WOP)
     return arr
 
 
 
 def main(func=bubblesort):
-    global BEEP, TIME
+    global TIME
     win = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Sorting Visualizer")
     t = generate_array()
     sorter = func.__name__.capitalize()
     run = True
     sorting = False
-    sound = True
+    sound = SOUND
     while run:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
