@@ -1,11 +1,11 @@
 import pygame
 from random import randint
 
-LOAD = False # Load initial state from a file (insert file name in CUSTOM)
+LOAD = True # Load initial state from a file (insert file name in CUSTOM)
 CUSTOM = "life.txt"
 if LOAD: LOAD = CUSTOM
 
-N = 25
+N = 50
 if LOAD:
     with open(LOAD,'r') as f:
         N = len(f.readline())-1

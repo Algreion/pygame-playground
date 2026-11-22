@@ -527,6 +527,7 @@ class Board:
                     elif sym.lower() == 'e': sym = 'r' if sym.islower() else 'R'
                     elif sym.lower() == 't': sym = 'n' if sym.islower() else 'N'
                     elif sym.lower() == 'd': sym = 'q' if sym.islower() else 'Q'
+                    elif sym.lower() == 'x': sym = 'n' if sym.islower() else 'N'
                     else: sym = ''
                 if sym == "": empty += 1
                 else:

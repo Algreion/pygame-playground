@@ -149,7 +149,7 @@ def mainloop():
     STARTING = False
     clock = pygame.time.Clock()
     paused = not STARTRUNNING
-    spd = 4
+    spd = 5
     reverse = False
     a = ANTCOLOR
     SPDS = [1,2,3,5,10,20,30,45,60,0]
@@ -212,4 +212,5 @@ def mainloop():
             elif not reverse: game.tick()
     if INTROS: print(f"\nThanks for playing! [{game.ticks} ticks]")
 
-mainloop()
+if __name__ == '__main__':
+    mainloop()
