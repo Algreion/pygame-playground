@@ -8,14 +8,16 @@ from copy import deepcopy
 
 win = None
 
-LOAD = '' # Will load image file if specified, eg. 'image.png'
+#todo: more brushes, zoom
+
+LOAD = "" # Will load image file if specified, eg. 'image.png'
 
 SAVEPATH = 'image.png' # Name for a saved image file.
 
 HEIGHT = 800
 WIDTH = 800
-W = 64
-H = 64
+W = 28
+H = 28
 BORDER = 0 # >0 for cell borders
 BORDERCOL = (200,200,200) # border color
 INFO = True
@@ -59,7 +61,8 @@ def loadimage(file: str) -> bool:
 if LOAD and loadimage(LOAD):
     print(f"Image '{LOAD}' loaded successfully.")
 
-if max(W,H)>256: MAXUNDO = min(MAXUNDO,3) # Avoids overhead
+if max(W,H)>=512: MAXUNDO = min(MAXUNDO,1) # Avoids overhead
+elif max(W,H)>=256: MAXUNDO = min(MAXUNDO,3)
 
 if W == H:
     HEIGHT -= HEIGHT%H
@@ -457,7 +460,9 @@ W = Save as {SAVEPATH} | \\: Scramble board | ESC = Quit""")
                         print(f"Image saved to '{SAVEPATH}' successfully.")
                 elif event.key == pygame.K_m:
                     modeselect = not modeselect
-                    if INFO: print("Selecting transformation, 0-9." if modeselect else "Selecting colors, 0-9.")
+                    if INFO:
+                        print("Selecting filter, 0-9." if modeselect else "Selecting colors, 0-9.")
+                        if modeselect: print("1 = Invert colors | 2 = Grayscale | 3 = Edge detect | 4 = Sharpen | 5 = Box Blur | 6 = Gaussian Blur | 7 = Color swap | 8 = Sepia | 9 = +Contrast | 0 = +Saturation")
                 elif event.key in [pygame.K_r,pygame.K_g,pygame.K_b]:
                     match event.key:
                         case pygame.K_r: selected = (255,0,0)
@@ -547,5 +552,6 @@ W = Save as {SAVEPATH} | \\: Scramble board | ESC = Quit""")
                             else: print(f"Selected color: {selected}")
                     if not modeselect and palette: palette = False
 
-print("Paint v1.0 - Press H for keybinds.")
-mainloop()
+if __name__ == '__main__':
+    print("Paint v1.0 - Press H for keybinds.")
+    mainloop()
