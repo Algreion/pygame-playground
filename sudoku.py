@@ -18,9 +18,9 @@ def logg(func):
 class ArraySudoku:
     def __init__(self, test=False):
         if test: # From Cracking the Cryptic: https://www.youtube.com/watch?v=9m9t8ie9-EE
-            board = [[5,0,0,2,0,0,0,4,0],[0,0,0,6,0,3,0,0,0],[0,3,0,0,0,9,0,0,7],
-                     [0,0,3,0,0,7,0,0,0],[0,0,7,0,0,8,0,0,0],[6,0,0,0,0,0,0,2,0],
-                     [0,8,0,0,0,0,0,0,3],[0,0,0,4,0,0,6,0,0],[0,0,0,1,0,0,5,0,0]]
+            board =[[5,0,0,2,0,0,0,4,0],[0,0,0,6,0,3,0,0,0],[0,3,0,0,0,9,0,0,7],
+                    [0,0,3,0,0,7,0,0,0],[0,0,7,0,0,8,0,0,0],[6,0,0,0,0,0,0,2,0],
+                    [0,8,0,0,0,0,0,0,3],[0,0,0,4,0,0,6,0,0],[0,0,0,1,0,0,5,0,0]]
         self._board = [[0]*N for _ in range(N)] if not test else board
     
     def print_board(self):
@@ -502,8 +502,8 @@ class Sudoku:
 
 mistakes = 0
 FAIL: True
-number_keys = {pygame.K_0: 0, pygame.K_1: 1, pygame.K_2: 2, pygame.K_3: 3, pygame.K_4: 4,
-               pygame.K_5: 5, pygame.K_6: 6, pygame.K_7: 7, pygame.K_8: 8, pygame.K_9: 9}
+number_keys =  {pygame.K_0: 0, pygame.K_1: 1, pygame.K_2: 2, pygame.K_3: 3, pygame.K_4: 4,
+                pygame.K_5: 5, pygame.K_6: 6, pygame.K_7: 7, pygame.K_8: 8, pygame.K_9: 9}
 
 def main():
     global mistakes, HINTS, FAIL, RANDOM, INSTANT
@@ -525,7 +525,7 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
-            if event.type == pygame.KEYDOWN:
+            elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and not solved: # Solve
                     if not game.solve(): print("Unsolveable!")
                     else: 
