@@ -169,7 +169,7 @@ RECT_COLOR = "cadetblue1"
 SORTED_COLOR = "white"
 TXT_COLOR = "white"
 BG = "black"
-TIME = 0.001
+TIME = 0.01
 SOUND = True
 local = os.path.dirname(__file__)
 BEEP_SOUND = "sounds/blip.wav"
@@ -584,6 +584,7 @@ def main(func=bubblesort):
     run = True
     sorting = False
     sound = SOUND
+    prevtime = TIME if TIME else 0.01
     while run:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -633,7 +634,8 @@ def main(func=bubblesort):
                 elif event.key == pygame.K_x:
                     sound = False
                 elif event.key == pygame.K_0:
-                    TIME = 0
+                    TIME = 0 if TIME else prevtime
+                    print(f"Toggled Fast Sorting [{"OFF" if TIME else "ON"}].")
                 elif event.key == pygame.K_SPACE:
                     sorting = True
                     if func(win, t, sound) is False:

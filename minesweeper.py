@@ -255,7 +255,7 @@ def drawmenu(win, endfont, cont: bool = False) -> list:
     i = endfont.render("Minesweeper", True, MENUFONT)
     surf = i.get_rect(center=(WIDTH//2,3*HEIGHT//10))
     win.blit(i,surf)
-    buttonwidth = WIDTH//2
+    buttonwidth = WIDTH//1.75
     i = endfont.render("EASY", True, ENDFONT)
     surf = i.get_rect(center=(WIDTH//2,5*HEIGHT//10))
     text = surf.copy()

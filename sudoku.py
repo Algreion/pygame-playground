@@ -573,11 +573,11 @@ def main():
                             if not game.generate_test(CLUES): game = Sudoku(number=random.randint(1,BOARDS))
                         else: game = Sudoku(number=random.randint(1,BOARDS))
                     else:
-                        print("Are you sure? Press R again to generate a new board")
+                        print("Are you sure? Press R again to generate a new board.")
                         confirm = True
                 elif event.key == pygame.K_f: # Toggle fail condition
                     FAIL = not FAIL
-                    print("Toggled fail condition on") if FAIL else print("Toggled fail condition off")
+                    print("Toggled fail condition on.") if FAIL else print("Toggled fail condition off.")
                     mistakes = 0
                 elif event.key == pygame.K_i:
                     INSTANT = not INSTANT

@@ -1299,16 +1299,16 @@ class PyBoard(Board):
     def drawsquare(self, location: tuple, highlight: bool = False, moveoption: bool = False, piece: bool = True, hl2: bool = False, captureoption: bool = False, promo: tuple | None = None, hint: int = -1):
         """Draws a single square. Location is (x,y)."""
         w,h = location
-        col = DARK if (w+h)%2 else LIGHT
+        col = LIGHT if (w+h)%2 else DARK
         if promo is not None: col = PROMOCOLOR
         coord = (GAPX+w*self.w,GAPY+h*self.h if self.swapped else GAPY+BOARDH-(1+h)*self.h)
         pygame.draw.rect(self.win,col,(coord[0],coord[1],self.w,self.h))
         if BORDER: pygame.draw.rect(self.win,SQUAREBORDER_COLOR,(coord[0],coord[1],self.w,self.h),SQUAREBORDER_WIDTH)
         if moveoption and self.info:
-            pygame.draw.rect(self.win,DMOVEOPTION if (w+h)%2 else MOVEOPTION,(coord[0],coord[1],self.w,self.h),MOVEOPTION_BORDER)
+            pygame.draw.rect(self.win,MOVEOPTION if (w+h)%2 else DMOVEOPTION,(coord[0],coord[1],self.w,self.h),MOVEOPTION_BORDER)
             if MOVEOPTION_BORDER == 0 and BORDER: pygame.draw.rect(self.win,SQUAREBORDER_COLOR,(coord[0],coord[1],self.w,self.h),SQUAREBORDER_WIDTH)
         if captureoption and self.info:
-            pygame.draw.rect(self.win,DCAPTUREOPTION if (w+h)%2 else CAPTUREOPTION,(coord[0],coord[1],self.w,self.h),CAPTUREOPTION_BORDER)
+            pygame.draw.rect(self.win,CAPTUREOPTION if (w+h)%2 else DCAPTUREOPTION,(coord[0],coord[1],self.w,self.h),CAPTUREOPTION_BORDER)
             if CAPTUREOPTION_BORDER == 0 and BORDER: pygame.draw.rect(self.win,SQUAREBORDER_COLOR,(coord[0],coord[1],self.w,self.h),SQUAREBORDER_WIDTH)
         if highlight:
             pygame.draw.rect(self.win,HIGHLIGHT,(coord[0],coord[1],self.w,self.h),HIGHLIGHT_BORDER)
