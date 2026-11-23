@@ -11,7 +11,7 @@ Mostly made for fun or for learning purposes, though a few have potential if dev
 `pip install pygame requests`
 
 ## Chess
-![chess](images/chess.png)
+<img src="images/chess.png" alt="Chess" width="300" />
 
 Chess implemented from scratch with a custom UI. It can be played against another player locally, or against a bot. Includes various commands and new chess pieces.
 
@@ -28,7 +28,7 @@ Chess implemented from scratch with a custom UI. It can be played against anothe
 - Improving piece readability and adding custom chessboard themes.
 
 ## Pathfinder
-![pathfinder](images/path.gif)
+<img src="images/path.gif" alt="Pathfinder" width="300" />
 
 Visualizer for the A* pathfinding algorithm, which finds the shortest path between two points.
 
@@ -41,7 +41,7 @@ Visualizer for the A* pathfinding algorithm, which finds the shortest path betwe
 - Keybinds are printed at launch.
 
 ## Sorting Algorithms
-![sorting](images/sorting.gif)
+<img src="images/sorting.gif" alt="Sorting Algorithms" width="300" />
 
 Visualizer for 12 sorting algorithms, from bubble sort to cocktail sort. Has sound.
 
@@ -51,7 +51,7 @@ Keybinds are printed at launch.
 
 
 ## Paint
-![paint](images/paint.png)
+<img src="images/paint.png" alt="Paint" width="300" />
 
 Sketchboard with integrated filters and other features.
 
@@ -62,35 +62,35 @@ Sketchboard with integrated filters and other features.
 - Press H to print all keybinds.
 
 ## Game of Life
-![life](images/life.gif)
+<img src="images/life.gif" alt="Conway's Game of Life" width="300" />
 
 Implementation of Conway's cellular automata, the [Game of Life](https://playgameoflife.com/). Made a simple default pattern to showcase its potential.
 
 Press H to print all keybinds.
 
 ## Langton's Ant
-![ant](images/langton.gif)
+<img src="images/langton.gif" alt="Langton's Ant" width="300" />
 
 Implementation of [Langton's ant](https://en.wikipedia.org/wiki/Langton%27s_ant), a 2D Turing machine.
 
 Press C to print all keybinds.
 
 ## Sudoku
-![sudoku](images/sudoku.png)
+<img src="images/sudoku.png" alt="Sudoku" width="300" />
 
 Sudoku implemented with a custom UI and solver, as well as custom patterns.
 
 Keybinds are printed at launch.
 
 ## Snake
-![snake](images/snake.gif)
+<img src="images/snake.gif" alt="Snake" width="300" />
 
 Simple snake implementation. Includes an Admin mode with various fun commands.
 
 Keybinds are printed at launch.
 
 ## Minesweeper
-![minesweeper](images/minesweeper.png)
+<img src="images/minesweeper.png" alt="Minesweeper" width="300" />
 
 Minesweeper implementation. Includes an Admin mode with custom commands.
 
