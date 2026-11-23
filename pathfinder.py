@@ -1,7 +1,6 @@
 import os
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame, heapq
-from tkinter import messagebox
 from time import perf_counter as perf
 from math import sqrt
 from random import choice
@@ -137,6 +136,9 @@ def mainloop():
     WIDTH = 800 + (COLS - 800%COLS)
     HEIGHT = 800 + (ROWS - 800%ROWS)
     w = h = min(WIDTH // COLS, HEIGHT // ROWS)
+    MENUFONT = pygame.font.SysFont("verdana",min(WIDTH,HEIGHT)//25)
+    MENUCOLOR = (255,255,255)
+    MENUBG = (0,0,0)
 
     if border:
         COLS += 2
@@ -274,14 +276,8 @@ def mainloop():
     drawing = True
     neg = 1 # Negative weights
     modeselect = False
-    saving = False
     number_keys = {pygame.K_0: 0, pygame.K_1: 1, pygame.K_2: 2, pygame.K_3: 3, pygame.K_4: 4,
                 pygame.K_5: 5, pygame.K_6: 6, pygame.K_7: 7, pygame.K_8: 8, pygame.K_9: 9}
-    print("""Keybinds:
-    Left Click: Draw walls | Right Click: Erase walls | Space: Begin pathfinding
-    Number keys: Increase cell weights | N: Toggle negative weights
-    P: Toggle show process | S/E: Reposition Start/End | M + Numbers: Change movement type
-    X: Save board | C: Clear grid | D: Change cost calculation (Manhattan / Euclidean)""")
     while drawing:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -306,7 +302,7 @@ def mainloop():
                     drawing = False
                     break
                 elif event.key == pygame.K_SPACE:
-                    print("Finding path...\n")
+                    print("Finding path...")
                     drawing = False
                     break
                 elif event.key == pygame.K_n:
@@ -333,7 +329,6 @@ def mainloop():
                     TIMING = not TIMING
                     print(f"Toggled stopwatch {"[ON]" if TIMING else "[OFF]"}")
                 elif event.key == pygame.K_x:
-                    saving = True
                     res = [[0 for _ in range(COLS)] for _ in range(ROWS)]
                     for r in range(ROWS):
                         for c in range(COLS):
@@ -368,6 +363,44 @@ def mainloop():
     start.g = 0
     start.f = heuristic(start, end) if DISTANCE else euclidean(start, end)
 
+    def drawmenu(stats: tuple, update: bool = True):
+        dist, time = stats
+        buttons = []
+        i = MENUFONT.render(f"Path found{f" in {time:.3f}s" if time is not None else ''} (d={dist})", True, MENUCOLOR)
+        surf = i.get_rect(center=(WIDTH//2,HEIGHT//2))
+        text = surf.copy()
+        pygame.draw.rect(screen, MENUBG, surf.inflate(WIDTH//25, HEIGHT//30), 0)
+        screen.blit(i, text)
+        
+        i = MENUFONT.render("REDO", True, MENUCOLOR)
+        surf = i.get_rect()
+        buttonwidth = i.get_width()
+        surf.midright = (WIDTH//2-buttonwidth,6*HEIGHT//10)
+        text = surf.copy()
+        surf = surf.inflate(WIDTH//30, HEIGHT//30)
+        pygame.draw.rect(screen, MENUBG, surf, 0)
+        screen.blit(i, text)
+        buttons.append(surf)
+        i = MENUFONT.render("QUIT", True, MENUCOLOR)
+        surf = i.get_rect()
+        surf.width = buttonwidth
+        surf.midleft = (WIDTH//2+buttonwidth,6*HEIGHT//10)
+        text = surf.copy()
+        surf = surf.inflate(WIDTH//30, HEIGHT//30)
+        pygame.draw.rect(screen, MENUBG, surf, 0)
+        screen.blit(i, text)
+        buttons.append(surf)
+        i = MENUFONT.render("VIEW", True, MENUCOLOR)
+        surf = i.get_rect(center=(WIDTH//2,6*HEIGHT//10))
+        surf.width = buttonwidth
+        text = surf.copy()
+        surf = surf.inflate(WIDTH//30, HEIGHT//30)
+        pygame.draw.rect(screen, MENUBG, surf, 0)
+        screen.blit(i, text)
+        buttons.append(surf)
+        if update: pygame.display.update()
+        return buttons
+
     # Pathfinding
     def main():
         global repeat, TIMING
@@ -378,19 +411,39 @@ def mainloop():
             current = grid[x][y]
             if current == end:
                 distance = int(current.f)
-                print("Path found. Distance:", distance)
-                if TIMING: print(f"{perf()-starttime:.3f}s")
+                print(f"Path found{f" in {perf()-starttime:.3f}s" if TIMING else ''}! | Distance: {distance}")
                 while current != start: # Trace back previous path
                     current.processed = False
                     current.show(PATH, 0)
-                    if saving and current != end: res[current.j][current.i] = PATH_S
                     current = current.previous
                 end.show(END, 0)
-                if saving:
-                    print("Path:\n")
-                    for line in res: print("".join(line))
-                if messagebox.askokcancel("Path found", (f"A path has been found.\nThe lowest distance to the path is {str(distance//1)} blocks away.\nPress OK to try again, or cancel to exit.")):
-                    repeat = True
+                menu = True
+                screen_path = screen.copy()
+                btns = drawmenu((distance,perf()-starttime))
+                screen_menu = screen.copy()
+                viewing = False
+                while menu:
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:menu = False
+                        elif event.type == pygame.KEYDOWN:
+                            if event.key in [pygame.K_ESCAPE,pygame.K_3]:
+                                menu=False
+                            elif event.key in [pygame.K_TAB,pygame.K_2]:
+                                viewing = not viewing
+                                screen.blit(screen_path if viewing else screen_menu, (0,0))
+                                pygame.display.update()
+                            elif event.key in [pygame.K_r,pygame.K_1]:
+                                repeat = True;menu=False
+                        elif event.type == pygame.MOUSEBUTTONDOWN and not viewing:
+                            mx,my = pygame.mouse.get_pos()
+                            if btns[0].collidepoint(mx,my): # Redo
+                                repeat = True;menu=False
+                            elif btns[2].collidepoint(mx,my): # View
+                                viewing = not viewing
+                                screen.blit(screen_path if viewing else screen_menu, (0,0))
+                                pygame.display.update()
+                            elif btns[1].collidepoint(mx,my): # Quit
+                                menu=False
                 pygame.quit()
                 return
 
@@ -430,6 +483,12 @@ def mainloop():
 
 if __name__ == '__main__':
     repeat = True
+    print("""Keybinds:
+    Left Click: Draw walls | Right Click: Erase walls | Space: Begin pathfinding
+    Number keys: Increase cell weights | N: Toggle negative weights
+    P: Toggle show process | S/E: Reposition Start/End | M + Numbers: Change movement type
+    X: Save board | C: Clear grid | D: Change cost calculation (Manhattan / Euclidean)""")
     while repeat:
         repeat = False
+        pygame.font.init()
         mainloop()
