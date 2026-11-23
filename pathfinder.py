@@ -14,11 +14,13 @@ from pathlib import Path
 
 custom = True
 MAP = "data/maze.txt"
+SAVEPATH = "saves/maze.txt"
 TIMING = True
 DISTANCE = 1 # 0 Euclidean, 1 Manhattan distance
 
 cur = Path(__file__).resolve().parent
 if custom and MAP: MAP = cur/MAP
+if SAVEPATH: SAVEPATH = cur/SAVEPATH
 
 def get_custom_grid(filename: str = MAP) -> list:
     grid = []
@@ -30,6 +32,14 @@ def get_custom_grid(filename: str = MAP) -> list:
     except: return []
 if custom: CUSTOM_GRID = get_custom_grid(MAP)
 else: CUSTOM_GRID = []
+
+def save_grid(grid: str, filename: str = SAVEPATH) -> bool:
+    try:
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(''.join(line) for line in grid))
+    except FileNotFoundError:
+        return False
+    return True
 
 def mainloop():
     global CUSTOM_GRID, TIMING, DISTANCE
@@ -291,7 +301,11 @@ def mainloop():
                 except (AttributeError,IndexError):
                     continue
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    drawing = False
+                    break
+                elif event.key == pygame.K_SPACE:
                     print("Finding path...\n")
                     drawing = False
                     break
@@ -320,12 +334,12 @@ def mainloop():
                     print(f"Toggled stopwatch {"[ON]" if TIMING else "[OFF]"}")
                 elif event.key == pygame.K_x:
                     saving = True
-                    print("Current board:\n")
                     res = [[0 for _ in range(COLS)] for _ in range(ROWS)]
                     for r in range(ROWS):
                         for c in range(COLS):
                             res[r][c] = START_S if start == grid[c][r] else END_S if end==grid[c][r] else OBS_S if grid[c][r].obs else EMPTY_S
-                    for line in res: print("".join(line))
+                    if save_grid(res): print(f"Saved at '{SAVEPATH}' successfully.")
+                    else: print(f"Unable to save at '{SAVEPATH}'.")
 
                 elif event.key in number_keys:
                     if modeselect:
@@ -408,7 +422,7 @@ def mainloop():
         if not pygame.get_init():
             break
         ev = pygame.event.poll()
-        if ev.type == pygame.QUIT:
+        if ev.type == pygame.QUIT or (ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE):
             pygame.quit()
             break
         pygame.display.update()

@@ -133,7 +133,7 @@ class ArraySudoku:
             for c in range(N):
                 self._board[r][c] = 0
 
-WIDTH, HEIGHT = 910, 910
+WIDTH, HEIGHT = 820, 820
 BOARD_W, BOARD_H = WIDTH-100, HEIGHT-100
 w, h = BOARD_W//N, BOARD_H//N
 POSX, POSY = 50, 5
@@ -526,7 +526,9 @@ def main():
             if event.type == pygame.QUIT:
                 run = False
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and not solved: # Solve
+                if event.key == pygame.K_ESCAPE:
+                    run = False
+                elif event.key == pygame.K_SPACE and not solved: # Solve
                     if not game.solve(): print("Unsolveable!")
                     else: 
                         print("Press R for a new board.")

@@ -1,7 +1,6 @@
-import random
+import random,time,os
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
-import time
-import os
 pygame.font.init()
 pygame.mixer.init()
 
@@ -219,6 +218,8 @@ def bubblesort(win, t, sound):
             if t[i] > t[i+1]:
                 swapped = True
                 t[i],t[i+1] = t[i+1],t[i]
+                ev = pygame.event.poll()
+                if ev.type == pygame.QUIT or (ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE): return False
                 draw(win, t, False, sorted_indices, sort="Bubblesort")
                 time.sleep(TIME)
             sorted_indices.discard(i)
@@ -237,6 +238,8 @@ def insertionsort(win, t, sound):
             t[i] = t[i-1]
             i -= 1
             t[i] = current
+            ev = pygame.event.poll()
+            if ev.type == pygame.QUIT or (ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE): return False
             draw(win, t, False, set([i]), sort="Insertion Sort")
             time.sleep(TIME)
         if sound: pygame.mixer.Sound.play(BEEP)
@@ -330,8 +333,10 @@ def selectionsort(win, arr, sound):
             time.sleep(TIME)
         
         arr[i], arr[min_idx] = arr[min_idx], arr[i]
-        if sound: pygame.mixer.Sound.play(BEEP)
+        ev = pygame.event.poll()
+        if ev.type == pygame.QUIT or (ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE): return False
         draw(win, arr, False, set([i, min_idx]), sort="Selection Sort")
+        if sound: pygame.mixer.Sound.play(BEEP)
         time.sleep(TIME)
     
     draw(win, arr, True, set(range(len(arr))), sort="Selection Sort")
@@ -351,8 +356,10 @@ def shellsort(win, arr, sound):
                 time.sleep(TIME)
                 j -= gap
             arr[j] = temp
-            if sound and not i%5: pygame.mixer.Sound.play(BEEP)
+            ev = pygame.event.poll()
+            if ev.type == pygame.QUIT or (ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE): return False
             draw(win, arr, False, set([j]), sort="Shell Sort")
+            if sound and not i%5: pygame.mixer.Sound.play(BEEP)
             time.sleep(TIME)
         gap //= 2 # Redo with half the gap
     
@@ -385,6 +392,8 @@ def heapsort(win, arr, sound):
 
     for i in range(n - 1, 0, -1): # Position the max on the right, reapply max heap rule
         arr[0], arr[i] = arr[i], arr[0]
+        ev = pygame.event.poll()
+        if ev.type == pygame.QUIT or (ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE): return False
         draw(win, arr, False, set([0, i]), sort="Heap Sort")
         time.sleep(TIME)
         heapify(i, 0)
@@ -409,6 +418,8 @@ def cocktailsort(win, arr, sound):
                 swapped = True
                 time.sleep(TIME)
             sorted.add(i+1)
+            ev = pygame.event.poll()
+            if ev.type == pygame.QUIT or (ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE): return False
             draw(win, arr, False, sorted, sort="Cocktail Sort")
             sorted.remove(i+1)
         if sound: pygame.mixer.Sound.play(BEEP)
@@ -453,6 +464,8 @@ def combsort(win, arr, sound):
             if arr[i] > arr[i + gap]:
                 arr[i], arr[i + gap] = arr[i + gap], arr[i]
                 sorted = False
+                ev = pygame.event.poll()
+                if ev.type == pygame.QUIT or (ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE): return False
                 draw(win, arr, False, set([i, i+gap]), sort="Comb Sort")
                 if sound and not i%3: pygame.mixer.Sound.play(BEEP)
                 time.sleep(TIME)
@@ -471,8 +484,10 @@ def cyclesort(win, arr, sound):
         for i in range(cycle_start + 1, n): # Find index for item
             if arr[i] < item:
                 pos += 1
-                time.sleep(TIME//1.5)
+                ev = pygame.event.poll()
+                if ev.type == pygame.QUIT or (ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE): return False
                 draw(win, arr, False, set([cycle_start, pos]), sort="Cycle Sort")
+                time.sleep(TIME//1.5)
 
         if pos == cycle_start: # Already in right position
             continue
@@ -481,8 +496,11 @@ def cyclesort(win, arr, sound):
             pos += 1
 
         arr[pos], item = item, arr[pos]
-        if sound: pygame.mixer.Sound.play(BEEP)
+        
+        ev = pygame.event.poll()
+        if ev.type == pygame.QUIT or (ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE): return False
         draw(win, arr, False, set([cycle_start, pos]), sort="Cycle Sort")
+        if sound: pygame.mixer.Sound.play(BEEP)
         
         time.sleep(TIME)
 
@@ -491,15 +509,19 @@ def cyclesort(win, arr, sound):
             for i in range(cycle_start + 1, n):
                 if arr[i] < item:
                     pos += 1
-                    time.sleep(TIME//1.5)
+                    ev = pygame.event.poll()
+                    if ev.type == pygame.QUIT or (ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE): return False
                     draw(win, arr, False, set([cycle_start, pos]), sort="Cycle Sort")
+                    time.sleep(TIME//1.5)
 
             while item == arr[pos]:
                 pos += 1
 
             arr[pos], item = item, arr[pos]
-            if sound: pygame.mixer.Sound.play(BEEP)
+            ev = pygame.event.poll()
+            if ev.type == pygame.QUIT or (ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE): return False
             draw(win, arr, False, set([cycle_start, pos]), sort="Cycle Sort")
+            if sound: pygame.mixer.Sound.play(BEEP)
             time.sleep(TIME)
     
     draw(win, arr, True, set(range(len(arr))), sort="Cycle Sort")
@@ -511,6 +533,8 @@ def bogosort(win, arr, sound):
 
     while time.time() - start_time < wait_time:
         random.shuffle(arr)
+        ev = pygame.event.poll()
+        if ev.type == pygame.QUIT or (ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE): return False
         draw(win, arr, False, sort="Bogosort")
         time.sleep(TIME)
     sorted_arr = sorted(arr)
@@ -538,8 +562,11 @@ def pancakesort(win, arr, sound):
         
         if max_idx != size:
             if max_idx != 0:
+                ev = pygame.event.poll()
+                if ev.type == pygame.QUIT or (ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE): return False
                 flip(arr, max_idx)
-                
+            ev = pygame.event.poll()
+            if ev.type == pygame.QUIT or (ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE): return False
             flip(arr, size)
     
     draw(win, arr, True, set(range(len(arr))), sort="Pancake Sort")
@@ -561,8 +588,11 @@ def main(func=bubblesort):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+            elif sorting and event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE: run=False
             elif event.type == pygame.KEYDOWN and not sorting:
-                if event.key == pygame.K_b:
+                if event.key == pygame.K_ESCAPE:
+                    run = False
+                elif event.key == pygame.K_b:
                     func = bubblesort
                     sorter = "Bubblesort | O(n^2)"
                 elif event.key == pygame.K_i:
@@ -606,7 +636,9 @@ def main(func=bubblesort):
                     TIME = 0
                 elif event.key == pygame.K_SPACE:
                     sorting = True
-                    func(win, t, sound)
+                    if func(win, t, sound) is False:
+                        sorting = False
+                        run = False
         if not sorting:
             draw(win, t, sort=sorter)
     pygame.quit()

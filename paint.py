@@ -467,7 +467,7 @@ W = Save as {SAVEPATH_IMG.name} | \\: Scramble board | ESC = Quit""")
                         print(f"Unable to save: {e}")
                 elif event.key == pygame.K_w:
                     if board.saveimage(file=SAVEPATH_IMG):
-                        print(f"Image saved to '{SAVEPATH_IMG.name}' successfully.")
+                        print(f"Image saved to '{SAVEPATH_IMG}' successfully.")
                 elif event.key == pygame.K_m:
                     modeselect = not modeselect
                     if INFO:

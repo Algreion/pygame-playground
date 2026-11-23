@@ -258,6 +258,9 @@ class Game:
                     self.run = False
                     break
                 elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        self.run = False
+                        break
                     if (event.key == pygame.K_RIGHT or event.key == pygame.K_d) and not self.paused:
                         # Move right
                         self.snake.dirchange(2)
@@ -329,7 +332,7 @@ class Game:
                         # Restart the game
                         self.restart()
                         if ADMIN: print("Restarted.")
-                    elif event.key == pygame.K_ESCAPE:
+                    elif event.key == pygame.K_TAB:
                         # Pause
                         self.paused = not self.paused
 
@@ -370,7 +373,7 @@ class Game:
         pygame.quit()
 
 def main():
-    print("Keybinds: WASD (or arrow keys) - Move, R - Restart, ESC - Pause, M - Mute")
+    print("Keybinds: WASD (or arrow keys) - Move, R - Restart, Tab - Pause, M - Mute")
     if ADMIN:
         print("\tI: Invincibiility | K/L: +/-1 score | O/P: +/-1 speed | X: Instant win")
     game = Game()

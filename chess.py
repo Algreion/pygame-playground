@@ -15,7 +15,7 @@ EMPTY = 'bold'
 
 LOGS = False
 SEP = "_______________________________"
-SAVEPATH_TXT = "saves/chessboard.txt"
+SAVEPATH = "saves/chessboard.txt"
 
 ADMIN = True
 DEBUGGING = False
@@ -61,7 +61,7 @@ ENDBUTTONSFONT = (0,0,0)
 HINT = (255,215,0)
 
 cur = Path(__file__).resolve().parent
-if SAVEPATH_TXT: SAVEPATH = cur/SAVEPATH_TXT
+if SAVEPATH: SAVEPATH = cur/SAVEPATH
 
 def api(fen: str, ev: bool = False, json: bool = False) -> str:
     """Sends FEN board to API and returns best move. ev=True returns eval."""
@@ -1581,7 +1581,7 @@ def pyloop():
                         HISTORY = False
                         x = board.load()
                         if not x:
-                            print(f"Unable to load '{SAVEPATH_TXT}'.")
+                            print(f"Unable to load '{SAVEPATH}'.")
                             continue
                         if isinstance(x,list): color = int(x[0])
                         else: color = 1
@@ -1671,7 +1671,7 @@ def pyloop():
                             if LOGS: print("Locked turn." if LOCKTURN else "Unlocked turn.")
                         elif event.key == pygame.K_g and ADMIN:
                             board.save(stats=[color,int(INFO),int(SWAPPING)])
-                            print(f"Board saved to '{SAVEPATH_TXT}'.")
+                            print(f"Board saved to '{SAVEPATH}'.")
                         elif event.key == pygame.K_n and ADMIN:
                             turn = False
                             MOVE = board.ai(color)

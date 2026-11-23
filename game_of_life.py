@@ -4,9 +4,11 @@ from pathlib import Path
 
 LOAD = True # Load initial state from a file (insert file name in CUSTOM)
 CUSTOM = "data/life.txt"
+SAVEPATH = "saves/life.txt"
 
 cur = Path(__file__).resolve().parent
 if LOAD: LOAD = cur/CUSTOM
+if SAVEPATH: SAVEPATH = cur/SAVEPATH
 
 N = 50
 if LOAD:
@@ -197,11 +199,15 @@ class Grid:
             self.cells -= 1
         self.ticks += 1
 
-    def printstate(self):
-        for row in self.start:
-            print("".join(map(str,[x for x in row])))
+    def savefile(self, filename: str = SAVEPATH) -> bool:
+        try:
+            with open(filename, 'w', encoding='utf-8') as f:
+                for row in self.start:
+                    f.write(''.join(map(str,[x for x in row]))+'\n')
+        except FileNotFoundError: return False
+        return True
 
-    def loadfile(self, filename):
+    def loadfile(self, filename: str):
         self.start = []
         with open(filename,'r') as f:
             for line in f:
@@ -247,7 +253,7 @@ class Game():
                     except (AttributeError,IndexError):
                         continue
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_q:
+                    if event.key in [pygame.K_ESCAPE, pygame.K_q]:
                         pygame.quit()
                         return False
                     elif event.key == pygame.K_SPACE:
@@ -273,7 +279,8 @@ class Game():
                         print(f"Population: {self.grid.cells} | Generations: {self.grid.ticks} | Game speed: {self.speed}")
                     elif event.key == pygame.K_s:
                         self.grid.savestate()
-                        self.grid.printstate()
+                        if self.grid.savefile(): print(f"State saved at '{SAVEPATH}' successfully.")
+                        else: print(f"Unable to save to '{SAVEPATH}'.")
                     elif event.key == pygame.K_l:
                         self.speed += 1
                     elif event.key == pygame.K_k and self.speed > 1:
@@ -298,7 +305,7 @@ class Game():
                     pygame.quit()
                     return False
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_q:
+                    if event.key in [pygame.K_q, pygame.K_ESCAPE]:
                         pygame.quit()
                         return False
                     elif event.key == pygame.K_SPACE:
@@ -321,8 +328,6 @@ class Game():
                             continue
                     elif event.key == pygame.K_p:
                         print(f"Population: {self.grid.cells} | Generations: {self.grid.ticks} | Game speed: {self.speed}")
-                    elif event.key == pygame.K_ESCAPE:
-                        self.paused = not self.paused
                     elif event.key == pygame.K_l:
                         self.speed += 1
                     elif event.key == pygame.K_k and self.speed > 1:
