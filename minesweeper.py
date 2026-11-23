@@ -50,9 +50,11 @@ DIFFICULTY = {
 
 LOSETIME = 0.5 # Time before bomb explodes
 
+KEYBINDS = f"Left Click: Reveal square | Right click: Place flag | Escape: Menu/Quit{"\n[Admin (A)] H: 1-tile solve | J: 3-tile solve" if ADMIN else ''}"
+
 def mainloop(w: int, h: int, mines: int, cont = None) -> int:
     """Handles a single round. Res: -1 = quit, Board = play again, 1 = menu."""
-    global WIDTH, HEIGHT,BOARDW,BOARDH
+    global WIDTH, HEIGHT,BOARDW,BOARDH,ADMIN
     WIDTH -= (WIDTH-2*GAPX)%w
     HEIGHT -= (HEIGHT-2*GAPY)%h
     BOARDW,BOARDH = WIDTH-2*GAPX,HEIGHT-2*GAPY
@@ -83,6 +85,11 @@ def mainloop(w: int, h: int, mines: int, cont = None) -> int:
                         res = board
                     running = False
                     break
+                elif event.key == pygame.K_c:
+                    print(KEYBINDS)
+                elif event.key == pygame.K_a:
+                    ADMIN = not ADMIN
+                    print(f"Admin toggled {'ON' if ADMIN else 'OFF'}.")
                 elif event.key in [pygame.K_h,pygame.K_j]  and ADMIN and not first:
                     x,y = pygame.mouse.get_pos()
                     x,y = (x-GAPX)//board.cellw, (y-GAPY)//board.cellh
@@ -334,6 +341,8 @@ def loop():
                     pygame.quit()
                     running = False
                     break
+                elif event.key == pygame.K_h:
+                    print(KEYBINDS)
                 elif event.key == pygame.K_1: # Easy
                     res = mainloop(*DIFFICULTY[1])
                 elif event.key == pygame.K_2: # Intermediate
@@ -551,4 +560,5 @@ class Board:
         return buttons
 
 if __name__ == '__main__':
+    print("Minesweeper | Press C to view keybinds")
     loop()
