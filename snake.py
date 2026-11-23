@@ -1,7 +1,9 @@
+import os,random
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
-import random
 from collections import deque
 from time import sleep
+from pathlib import Path
 pygame.font.init()
 pygame.mixer.init()
 
@@ -29,11 +31,14 @@ FOOD = "red"
 BG = "black"
 FONT = pygame.font.SysFont("comicsans", 20)
 FONTCOLOR = "white"
-SOUND = True
 
+SOUND = True
+cur = Path(__file__).resolve().parent
+NOM_SOUND = 'sounds/nom.mp3'
+HS_SOUND = 'sounds/snakehs.mp3'
 try:
-    NOM = pygame.mixer.Sound("../sounds/nom.mp3")
-    HSSOUND = pygame.mixer.Sound("../sounds/snakehs.mp3")
+    NOM = pygame.mixer.Sound(cur/NOM_SOUND)
+    HSSOUND = pygame.mixer.Sound(cur/HS_SOUND)
 except FileNotFoundError:
     SOUND = False
 
@@ -43,15 +48,18 @@ DOUBLEFOOD = 50 + N
 TRIPLEFOOD = 150 + N
 WIN_REQ = N*N-1
 HS = 0 if HIGH is True else None
+HIGHSCORE = 'saves/snakeHS.txt'
+HIGHSCORE = cur/HIGHSCORE
+
 if HS is not None:
     try:
-        with open("snakeHS.txt","r") as f:
+        with open(HIGHSCORE,"r",encoding='utf-8') as f:
             HS = int(f.read())
-    except:
+    except FileNotFoundError:
         try:
-            with open("snakeHS.txt","x") as f:
+            with open(HIGHSCORE,"x",encoding='utf-8') as f:
                 f.write("0")
-        except:
+        except FileNotFoundError:
             HS = None
 
 class Cell:
@@ -354,7 +362,7 @@ class Game:
         if HS is not None and self.score > HS and UPDATING:
             print("New high score!")
             try:
-                with open("snakeHS.txt","w") as f:
+                with open(HIGHSCORE,"w",encoding='utf-8') as f:
                     f.write(str(self.score))
             except:
                 pass

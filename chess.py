@@ -6,6 +6,7 @@ from rich import print
 import os,requests,random,time
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
+from pathlib import Path
 
 RICH = True
 BLACK = 'cyan'
@@ -14,6 +15,7 @@ EMPTY = 'bold'
 
 LOGS = False
 SEP = "_______________________________"
+SAVEPATH_TXT = "saves/chessboard.txt"
 
 ADMIN = True
 DEBUGGING = False
@@ -57,6 +59,9 @@ ENDFONT = (0,200,255)
 ENDBUTTONS = (255,255,255)
 ENDBUTTONSFONT = (0,0,0)
 HINT = (255,215,0)
+
+cur = Path(__file__).resolve().parent
+if SAVEPATH_TXT: SAVEPATH = cur/SAVEPATH_TXT
 
 def api(fen: str, ev: bool = False, json: bool = False) -> str:
     """Sends FEN board to API and returns best move. ev=True returns eval."""
@@ -231,7 +236,7 @@ class Board:
             self[square1] = piece1
             self[square2] = piece2
         return res
-    def save(self, file: str = 'board.txt', stats: list = []) -> bool:
+    def save(self, file: str = SAVEPATH, stats: list = []) -> bool:
         """Save board state to text file. Stats also saves info: [Turn, Info, Swap]."""
         board = self.simplified()+'\n'
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),file), 'w') as f:
@@ -240,7 +245,7 @@ class Board:
             f.write('\n&'+','.join(['' if c is None else self.code(c) for c in [self.white_enpassant,self.black_enpassant]]))
             if stats: f.write('\n!'+' '.join([str(s) for s in stats]))
         return True
-    def load(self, file: str = 'board.txt') -> bool | list:
+    def load(self, file: str = SAVEPATH) -> bool | list:
         try:
             with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),file), 'r') as f:
                 D = self.simplified_dict_invert
@@ -770,12 +775,12 @@ Chess commands: castle | draw | surrender || Commands: info | save (file) | swap
                 print('\n'+self.show(reverse,bool(info),bool(RICH)))
                 continue
             elif move.split()[0] in ['save','export']:
-                file = 'board.txt' if len(move.split())==1 else move.split()[1]
+                file = SAVEPATH if len(move.split())==1 else move.split()[1]
                 if self.save(file,stats): print(f"Board saved to '{file}' successfully.\n")
                 else: print("Error. Unable to save the board.")
                 continue
             elif move.split()[0] in ['load','import'] and ADMIN:
-                file = 'board.txt' if len(move.split())==1 else move.split()[1]
+                file = SAVEPATH if len(move.split())==1 else move.split()[1]
                 new = self.load(file)
                 if new: print("Board loaded successfully.")
                 else:
@@ -1107,12 +1112,12 @@ def superloop():
                     else: white += 1
                 total += 1
             case '3' | 'load':
-                default = 'board.txt'
+                default = SAVEPATH
                 try: file = input(f"Press enter to load '{default}', or input file name: ").lower()
                 except:
                     print("Quitting...")
                     break
-                if not file: file = 'board.txt'
+                if not file: file = SAVEPATH
                 elif file in ['x','cancel']:
                     print("Cancelled.")
                     continue
@@ -1576,7 +1581,7 @@ def pyloop():
                         HISTORY = False
                         x = board.load()
                         if not x:
-                            print("Unable to load 'board.txt'.")
+                            print(f"Unable to load '{SAVEPATH_TXT}'.")
                             continue
                         if isinstance(x,list): color = int(x[0])
                         else: color = 1
@@ -1666,7 +1671,7 @@ def pyloop():
                             if LOGS: print("Locked turn." if LOCKTURN else "Unlocked turn.")
                         elif event.key == pygame.K_g and ADMIN:
                             board.save(stats=[color,int(INFO),int(SWAPPING)])
-                            print("Board saved to 'board.txt'.")
+                            print(f"Board saved to '{SAVEPATH_TXT}'.")
                         elif event.key == pygame.K_n and ADMIN:
                             turn = False
                             MOVE = board.ai(color)

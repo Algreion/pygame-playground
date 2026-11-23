@@ -173,9 +173,11 @@ BG = "black"
 TIME = 0.001
 SOUND = True
 local = os.path.dirname(__file__)
+BEEP_SOUND = "sounds/blip.wav"
+WOP_SOUND = "sounds/wop.wav"
 try:
-    BEEP = pygame.mixer.Sound(os.path.join(local, "sounds/blip.wav"))
-    WOP = pygame.mixer.Sound(os.path.join(local, "sounds/wop.wav"))
+    BEEP = pygame.mixer.Sound(os.path.join(local, BEEP_SOUND))
+    WOP = pygame.mixer.Sound(os.path.join(local, WOP_SOUND))
 except FileNotFoundError:
     SOUND = False
 

@@ -1,14 +1,19 @@
 import pygame
 from random import randint
+from pathlib import Path
 
 LOAD = True # Load initial state from a file (insert file name in CUSTOM)
-CUSTOM = "life.txt"
-if LOAD: LOAD = CUSTOM
+CUSTOM = "data/life.txt"
+
+cur = Path(__file__).resolve().parent
+if LOAD: LOAD = cur/CUSTOM
 
 N = 50
 if LOAD:
-    with open(LOAD,'r') as f:
-        N = len(f.readline())-1
+    try:
+        with open(LOAD,'r') as f:
+            N = len(f.readline())-1
+    except: LOAD = False
 ALIVE_STATE = "#"
 DEAD_STATE = "."
 

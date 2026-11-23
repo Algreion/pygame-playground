@@ -1,8 +1,11 @@
+import os
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame, heapq
 from tkinter import messagebox
 from time import perf_counter as perf
 from math import sqrt
 from random import choice
+from pathlib import Path
 
 #? A* Pathfinding algorithm
 # Unlike its predecessor Dijkstra, which only looks at the shortest path with a priority queue, this takes into
@@ -10,9 +13,12 @@ from random import choice
 # The total cost thus is f = g + h, then it works the same as Dijkstra's algorithm with a priority queue
 
 custom = True
-MAP = "maze.txt"
+MAP = "data/maze.txt"
 TIMING = True
 DISTANCE = 1 # 0 Euclidean, 1 Manhattan distance
+
+cur = Path(__file__).resolve().parent
+if custom and MAP: MAP = cur/MAP
 
 def get_custom_grid(filename: str = MAP) -> list:
     grid = []

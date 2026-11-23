@@ -5,6 +5,7 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame,random
 from collections import deque
 from copy import deepcopy
+from pathlib import Path
 
 win = None
 
@@ -12,12 +13,18 @@ win = None
 
 LOAD = "" # Will load image file if specified, eg. 'image.png'
 
-SAVEPATH = 'image.png' # Name for a saved image file.
+SAVEPATH = 'saves/paint.txt' # Name for a saved image (txt).
+SAVEPATH_IMG = 'saves/image.png' # Name for a saved image (png).
+
+cur = Path(__file__).resolve().parent
+if LOAD: LOAD = cur/LOAD
+if SAVEPATH: SAVEPATH = cur/SAVEPATH
+if SAVEPATH_IMG: SAVEPATH_IMG = cur/SAVEPATH_IMG
 
 HEIGHT = 800
 WIDTH = 800
-W = 28
-H = 28
+W = 64
+H = 64
 BORDER = 0 # >0 for cell borders
 BORDERCOL = (200,200,200) # border color
 INFO = True
@@ -298,13 +305,13 @@ class Board:
                 self.blue[y][x] = max(0,min(255,Y+factor*(self.blue[y][x]-Y)))
         self.draw(update=update)
 
-    def save(self, file: str = 'paint.txt') -> str:
+    def save(self, file: str = SAVEPATH) -> str:
         """Saves as txt file."""
         with open(file, 'w', encoding='utf-8') as f:
             f.write('.'.join([','.join(str(i) for i in row) for row in self.red])+'\n'+'.'.join([','.join(str(i) for i in row) for row in self.green])+'\n'+'.'.join([','.join(str(i) for i in row) for row in self.blue]))
         return file
     
-    def load(self, file: str = 'paint.txt') -> str:
+    def load(self, file: str = SAVEPATH) -> str:
         with open(file, 'r', encoding='utf-8') as f:
             boards = f.readlines()
             red = [[int(i) for i in row.split(',')] for row in boards[0].split('.')]
@@ -329,7 +336,7 @@ class Board:
         return True
 
 def mainloop():
-    global win,WIDTH,HEIGHT,INFO
+    global win,WIDTH,HEIGHT,INFO,BORDER
     win = pygame.display.set_mode((WIDTH, HEIGHT))
     board = Board()
     board.draw()
@@ -378,8 +385,8 @@ def mainloop():
                 elif event.key == pygame.K_h:
                     print(f"""Keybinds: 0-9 = Select color | C = Clear board | K/L = Opacity | Z/X = Brush size
 P = Color picker | F = Fill tool | Q = Save color to slot | M + 0-9 = Select filter | U/I: Undo/Redo
-S = Save | A = Load | D = Toggle Info logs | R/G/B = Red/Green/Blue | Tab: Select random color
-W = Save as {SAVEPATH} | \\: Scramble board | ESC = Quit""")
+S = Save | A = Load | D = Toggle Info logs | R/G/B = Red/Green/Blue | Tab: Select random color | J: Toggle borders
+W = Save as {SAVEPATH_IMG.name} | \\: Scramble board | ESC = Quit""")
                 elif event.key == pygame.K_c:
                     undo.append((deepcopy(board.red),deepcopy(board.green),deepcopy(board.blue)))
                     redo.clear()
@@ -389,6 +396,9 @@ W = Save as {SAVEPATH} | \\: Scramble board | ESC = Quit""")
                 elif event.key == pygame.K_d:
                     INFO = not INFO
                     print(f"Info logs turned {'ON' if INFO else 'OFF'}.")
+                elif event.key == pygame.K_j:
+                    BORDER = 0 if BORDER else 1
+                    board.draw()
                 elif event.key == pygame.K_l:
                     brush = (brush[0],min(brush[1]+0.1,1),brush[2])
                     if INFO: print(f"Opacity: {brush[1]*100:.1f}%.")
@@ -456,8 +466,8 @@ W = Save as {SAVEPATH} | \\: Scramble board | ESC = Quit""")
                     except Exception as e:
                         print(f"Unable to save: {e}")
                 elif event.key == pygame.K_w:
-                    if board.saveimage(file=SAVEPATH):
-                        print(f"Image saved to '{SAVEPATH}' successfully.")
+                    if board.saveimage(file=SAVEPATH_IMG):
+                        print(f"Image saved to '{SAVEPATH_IMG.name}' successfully.")
                 elif event.key == pygame.K_m:
                     modeselect = not modeselect
                     if INFO:
