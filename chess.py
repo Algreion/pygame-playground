@@ -1,25 +1,17 @@
-# Terminal: superloop() | Interactive: pyloop()
-TERMINAL = False
-
-pprint = print
-from rich import print
 import os,requests,random,time
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
 from pathlib import Path
 
-RICH = True
 BLACK = 'cyan'
 WHITE = 'cornsilk1'
 EMPTY = 'bold'
 
 LOGS = False
-SEP = "_______________________________"
 SAVEPATH = "saves/chessboard.txt"
 
 ADMIN = True
-DEBUGGING = False
-TIMEOUT = 2 # Seconds for API request
+TIMEOUT = 3 # Seconds for API request
 HISTORY = True
 WAIT = 0 # Minimum bot thinking time
 
@@ -63,6 +55,8 @@ HINT = (255,215,0)
 cur = Path(__file__).resolve().parent
 if SAVEPATH: SAVEPATH = cur/SAVEPATH
 
+HISTORY_ORIGINAL = HISTORY
+
 def api(fen: str, ev: bool = False, json: bool = False) -> str:
     """Sends FEN board to API and returns best move. ev=True returns eval."""
     try:
@@ -70,7 +64,9 @@ def api(fen: str, ev: bool = False, json: bool = False) -> str:
         r.raise_for_status()
         r = r.json()
         return r if json else r.get('eval') if ev else r.get("lan")
-    except: return ''
+    except Exception as e:
+        if LOGS: print(f"Unable to reach API: {e}")
+        return ''
 
 class Board:
     def __init__(self, N: tuple = (8,8), filled: bool = False, type: str | None = 'Chess'):
@@ -125,9 +121,6 @@ class Board:
         self.board[y][x] = item
     def __delitem__(self, notation: str | tuple):
         self[notation] = None
-    def view(self, color: int = 1, info: bool = True) -> None:
-        """Prints the board."""
-        print(self.show(color, info, RICH))
     def check(self, square: tuple | str, col: int | None = None, pieces: bool = False) -> bool | list:
         """"Returns whether the square is seen by enemy pieces. Pieces toggle returns a list of attacking pieces."""
         square = self.ind(square)
@@ -239,11 +232,13 @@ class Board:
     def save(self, file: str = SAVEPATH, stats: list = []) -> bool:
         """Save board state to text file. Stats also saves info: [Turn, Info, Swap]."""
         board = self.simplified()+'\n'
-        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),file), 'w') as f:
-            f.write(board)
-            f.write('='+','.join([str(int(c)) for c in self.whitemoved])+' '+','.join([str(int(c)) for c in self.blackmoved]))
-            f.write('\n&'+','.join(['' if c is None else self.code(c) for c in [self.white_enpassant,self.black_enpassant]]))
-            if stats: f.write('\n!'+' '.join([str(s) for s in stats]))
+        try:
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),file), 'w') as f:
+                f.write(board)
+                f.write('='+','.join([str(int(c)) for c in self.whitemoved])+' '+','.join([str(int(c)) for c in self.blackmoved]))
+                f.write('\n&'+','.join(['' if c is None else self.code(c) for c in [self.white_enpassant,self.black_enpassant]]))
+                if stats: f.write('\n!'+' '.join([str(s) for s in stats]))
+        except FileNotFoundError: return False
         return True
     def load(self, file: str = SAVEPATH) -> bool | list:
         try:
@@ -267,22 +262,7 @@ class Board:
                             if P == 'king' and color == 1: self.white_king = self.code((x,y))
                             elif P == 'king' and color == 0: self.black_king = self.code((x,y))
             return True
-        except Exception as e: 
-            if DEBUGGING: print(f"[Debug] Error: {e}")
-            return False
-    def show(self, color: int = 1, info: bool = True, RICH: bool = True) -> str:
-        """Returns string of board with correct orientation."""
-        LETTERS = "".join([chr(97+i) for i in range(self.W)])
-        if color == 0: LETTERS = LETTERS[::-1]
-        letters = ''.join([c.center(self.gap) for c in LETTERS]) if info else ''
-        res = []
-        board = self.board[::-1] if color == 1 else [line[::-1] for line in self.board]
-        for i,line in enumerate(board):
-            res.append("|")
-            if info: S = str(self.H-i) if color == 1 else str(i+1)
-            else: S = ''
-            res[i] += ''.join([(f"[{WHITE if p.color else BLACK}]" if RICH else '')+str(p).center(self.gap)+(f"[/{WHITE if p.color else BLACK}]" if RICH else '') if p is not None else (f"[{EMPTY}]" if RICH else '')+self.blank.center(self.gap)+(f"[/{EMPTY}]" if RICH else '') for p in line])+"| "+S
-        return "\n".join(res)+'\n '+letters
+        except FileNotFoundError: return False
     def lookup(self, notation: str | tuple):
         """Returns the piece on the square or none."""
         x,y = self.ind(notation)
@@ -337,45 +317,34 @@ class Board:
         self.board = [[None for _ in range(self.W)] for _ in range(self.H)]
     def implicit(self, move: str) -> str:
         """Converts explicit (b1 c3) to implicit (Nc3)"""
-        try:
-            if len(move) != 5 or ' ' not in move: return move
-            square1, square2 = move[:2],move[3:]
-            piece = self.lookup(square1)
-            if piece is None:
-                if DEBUGGING: print(f"[Debug] Conversion of '{move}' to implicit failed. Square is empty.")
-                return move
-            p = self.simplified_dict[piece.type].upper()
-            return f"{p}{square2}"
-        except Exception as e: 
-            if DEBUGGING: print(f"[Debug] Conversion of '{move}' to implicit failed. Error: {e}")
-            return move
+        if len(move) != 5 or ' ' not in move: return move
+        square1, square2 = move[:2],move[3:]
+        piece = self.lookup(square1)
+        p = self.simplified_dict[piece.type].upper()
+        return f"{p}{square2}"
     def explicit(self, move: str, color: int | None = None, debugging: bool = False) -> str | None:
         """Converts implicit (Nc3) to explicit (b1 c3)"""
-        try:
-            if len(move) != 3: return move
-            move = move.lower()
-            P, square2 = move[0],move[1:]
-            pieces,option = [], self.ind(square2)
-            for h in range(self.H):
-                for w in range(self.W):
-                    p = self.lookup((w,h))
-                    if p is not None and self.simplified_dict_invert[P] == p.type and option in self.move_options((w,h),True,True)+self.capture_options((w,h),CHECK=True):
-                        if color is None or p.color==color: pieces.append(self.code((w,h)))
-            if len(pieces) == 0:
-                if debugging: print("Move isn't an option.")
-                return None
-            elif len(pieces) == 1:
-                return f"{pieces[0]} {square2}"
-            else:
-                while True:
-                    try: x = input(f"Ambiguous move, applies to pieces on: {pieces}. Specify square: ")
-                    except: (LOGS and pprint("Quitting...")) or quit()
-                    if x in pieces: return f"{x} {square2}"
-                    elif x.isdigit() and 0<int(x)<=len(pieces): return f"{pieces[int(x)-1]} {square2}"
-                    print("Invalid choice.")
-        except Exception as e:
-            if debugging: print(f"[Debug] Conversion of '{move}' to explicit failed. Error: {e}")
+        if len(move) != 3: return move
+        move = move.lower()
+        P, square2 = move[0],move[1:]
+        pieces,option = [], self.ind(square2)
+        for h in range(self.H):
+            for w in range(self.W):
+                p = self.lookup((w,h))
+                if p is not None and self.simplified_dict_invert[P] == p.type and option in self.move_options((w,h),True,True)+self.capture_options((w,h),CHECK=True):
+                    if color is None or p.color==color: pieces.append(self.code((w,h)))
+        if len(pieces) == 0:
+            if debugging: print("Move isn't an option.")
             return None
+        elif len(pieces) == 1:
+            return f"{pieces[0]} {square2}"
+        else:
+            while True:
+                try: x = input(f"Ambiguous move, applies to pieces on: {pieces}. Specify square: ")
+                except: (LOGS and print("Quitting...")) or quit()
+                if x in pieces: return f"{x} {square2}"
+                elif x.isdigit() and 0<int(x)<=len(pieces): return f"{pieces[int(x)-1]} {square2}"
+                print("Invalid choice.")
     def move(self,square1: str | tuple, square2: str | tuple) -> bool:
         """Move piece to chosen square. Requires square to be empty."""
         (x1,y1),(x2,y2) = self.ind(square1),self.ind(square2)
@@ -563,7 +532,7 @@ class Board:
         except: return ''
     def handle_turn(self, move: str, color: int) -> bool | str:
         """Handles game move with correct format. Returns True=break, False=continue, str=pawn promotion square."""
-        global RICH,WHITE,BLACK,EMPTY,LOGS
+        global WHITE,BLACK,EMPTY,LOGS
         move = move.split()
         if len(move) == 1:
             move = move[0]
@@ -608,12 +577,6 @@ class Board:
             if ',' in moveB: 
                 x,y = moveB.split(',')
                 moveB = (int(x),int(y))
-            if self.lookup(moveA) is None:
-                print("Square is empty.")
-                return False
-            elif self.lookup(moveA).color != color:
-                if LOGS: print("Piece belongs to opponent.")
-                return False
             opt, cap = self.move_options(moveA,CHECK=True), self.capture_options(moveA,CHECK=True)
             if self.ind(moveB) in opt:
                 self.move(moveA,moveB)
@@ -650,10 +613,9 @@ class Board:
                 if self.checkpromo(moveB): return moveB
                 return True
             else:
-                print("Invalid move. Try typing the piece to see available moves.")
-                print(move)
+                raise ValueError(f"Invalid move: {move}")
         else:
-            print("Unknown input. Type 'help' for info.")
+            raise ValueError("Unknown input.")
     def fromhistory(self, history: str, moves: int = 0) -> int:
         """Loads board from history (format is self.history)"""
         color = 1
@@ -686,266 +648,6 @@ class Board:
             case 'a8': self.blackmoved[0] = True
             case 'h8': self.blackmoved[2] = True
         return whitemoved,blackmoved
-    def turn(self, stats: list, botplay: tuple | None = None) -> bool | list | int:
-        """Turn of specified color. Returns whether to continue. Pawn promotions handled here due to input requirement."""
-        global RICH,WHITE,BLACK,EMPTY,LOGS
-        color, info, swap = stats
-        reverse = color if swap else 1
-        quitcheck = False
-        asked_draw = False
-        if botplay and botplay[0] == color: 
-            botcolor, botlogic = botplay
-            move = self.ai(botcolor,botlogic)
-            if move is None:
-                pprint("Bot couldn't find a valid move. Quitting...")
-                quit()
-            print("Move:",self.default(move).replace('P',''))
-            outcome = self.handle_turn(move,botcolor)
-            if isinstance(outcome,str):
-                match botlogic:
-                    case 1: options = ['queen','bishop','rook','knight'] # Medium
-                    case 3: options = ['bishop','knight'] # Easy
-                    case _: options = ['queen'] # Hard
-                promo = random.choice(options)
-                self.setpiece(outcome, name=promo)
-                if LOGS: print(f"{"WHITE" if color == 1 else "Black"} promoted pawn on {outcome} to a {promo.capitalize()}.")
-                if HISTORY: self.history += promo+'\n'
-            return True
-        print('\n'+self.show(reverse,bool(info),bool(RICH)))
-        if self.checkcheck(color):
-            if LOGS: print("Your king is in check!")
-            0
-        while True:
-            try:
-                if RICH: print(f"{f"[{WHITE}][White][/{WHITE}]" if color==1 else f"[{BLACK}][Black][/{BLACK}]"} ",end='')
-                else: print(f"[{"White" if color==0 else "Black"}]",end='')
-                move = input("> ").lower()
-            except:
-                pprint("Quitting...")
-                quit()
-            if move in ['h','help','format','cmds']:
-                print("""Use chess notation (eg. Nc3, e4, Qh7, Ph7...) or square notation:
-- A = Shows all available moves from square. Ex: a1
-- A B = Moves piece in square to specified. Ex: a2 a4
-Chess commands: castle | draw | surrender || Commands: info | save (file) | swap | show | logs | color (white/black/empty COLOR)\n""")
-                if ADMIN: print("""Admin commands:\nload (file) | reset | all (moves/captures) | random (1-3) | debug | default\nwin | forcedraw | set SQUARE PIECE (COLOR) | del SQUARE\n""")
-                continue
-            elif move in ['surrender','resign','giveup','stop','cancel','x','quit']: 
-                print(f"{"White" if color==1 else "Black"} resigns.")
-                return int(not color)
-            elif move in ['draw','tie']:
-                if asked_draw:
-                    print("Already offered a draw this round.\n")
-                    continue
-                print(f"{"White" if color==1 else "Black"} offers a draw.\n")
-                asked_draw = True
-                if botplay: 
-                    print("The bot refused.\n")
-                    continue
-                else:
-                    print(f"{"White" if color==0 else "Black"}, accept (1) or refuse (2) the draw?")
-                    try:
-                        if RICH: print(f"{f"[{WHITE}][White][/{WHITE}]" if color==0 else f"[{BLACK}][Black][/{BLACK}]"} ",end='')
-                        else: print(f"[{"White" if color==0 else "Black"}]",end='')
-                        draw = input("> ").lower()
-                        if draw in ['1','y','yes','accept']:
-                            print(f"{"White" if color==0 else "Black"} accepted the offer.\n")
-                            return -1
-                        else:
-                            print(f"{"White" if color==0 else "Black"} refused.\n")
-                            continue
-                    except:
-                        pprint("Quitting...")
-                        quit()
-            elif not move:
-                if quitcheck: return False
-                else:
-                    print("Input nothing again to quit.")
-                    quitcheck = True
-                continue
-            elif move in ['def', 'default'] and ADMIN:
-                if self.default == self.implicit:
-                    print("Default move rendering is now explicit. Ex: 'c1 b3'.")
-                    self.default = self.explicit
-                elif self.default == self.explicit:
-                    print("Default move rendering is now implicit. Ex: 'Nc3'.")
-                    self.default = self.implicit
-                continue
-            elif move in ['show','view']:
-                print('\n'+self.show(reverse,bool(info),bool(RICH)))
-                continue
-            elif move.split()[0] in ['save','export']:
-                file = SAVEPATH if len(move.split())==1 else move.split()[1]
-                if self.save(file,stats): print(f"Board saved to '{file}' successfully.\n")
-                else: print("Error. Unable to save the board.")
-                continue
-            elif move.split()[0] in ['load','import'] and ADMIN:
-                file = SAVEPATH if len(move.split())==1 else move.split()[1]
-                new = self.load(file)
-                if new: print("Board loaded successfully.")
-                else:
-                    print(f"Error loading the board. Check if {file} exists.")
-                    return [color]
-                return new
-            elif move in ['i','info']:
-                print(f"Toggled info {"OFF" if info else "ON"}.")
-                return [color, int(not info)]
-            elif move == 'logs':
-                print(f"Toggled logs {"OFF" if LOGS else "ON"}.")
-                LOGS = not LOGS
-                return [color]
-            elif move == 'swap':
-                print(f"Toggled swapping {"OFF" if swap else "ON"}.")
-                return [color, info, int(not swap)]
-            elif move.split()[0] == 'all' and ADMIN:
-                move = move.split()
-                if len(move) == 1:
-                    pool = self.all_moves(color)
-                    pool1, pool2 = pool
-                    if self.default == self.implicit: pool1, pool2 = [self.implicit(i) for i in pool1],[self.implicit(i) for i in pool2]
-                    print(f"All available moves:\n{pool1}\nAll available captures:\n{pool2}")
-                elif move[1] in ['c','captures']:
-                    pool = self.all_moves(color,capturesOnly=True)[1]
-                    if self.default == self.implicit: pool = [self.implicit(i) for i in pool]
-                    print(f"All available captures:\n{pool}")
-                elif move[1] in ['m','moves']: 
-                    pool = self.all_moves(color,movesOnly=True)[0]
-                    if self.default == self.implicit: pool = [self.implicit(i) for i in pool]
-                    print(f"All available moves (excluding captures):\n{pool}")
-                else: print("Invalid input. Options are 'all', 'all moves' or 'all captures'.")
-                continue
-            elif move.split()[0] in ['rand','random','r'] and ADMIN:
-                if len(move) == 1: logic = 2
-                else:
-                    if not move.split()[1].isdigit():
-                        print("Logic must be a number.")
-                    logic = int(move.split()[1])
-                m = self.ai(color,logic)
-                if m is None: 
-                    print("No valid move found.")
-                    continue
-                else:
-                    outcome = self.handle_turn(move=m,color=color)
-                    if outcome: break
-                    else: continue
-            elif move in ['points','advantage','material','mat','adv','eval']:
-                print(f"{f"[{WHITE}]White[/{WHITE}]" if color==1 else f"[{BLACK}]Black[/{BLACK}]"}'s material advantage: {self.advantage(color=color)}")
-                continue
-            elif move.split()[0] in ['color','rich']:
-                if len(move.split()) == 1:
-                    print(f"Toggled colors {"OFF" if RICH else "ON"}.")
-                    RICH = not RICH
-                    return [color]
-                elif len(move.split()) == 3:
-                    which, col = move.split()[1:]
-                    if which in ['w','white','1']: WHITE, old = col, WHITE
-                    elif which in ['black','0','b']: BLACK, old = col, BLACK
-                    elif which in ['blank','empty','2','e']: EMPTY, old = col, EMPTY
-                    else: print("Can only change 'white' (1), 'black' (0) or 'empty' (2). Note some colors may not work, use the python rich database for info.")
-                    try:
-                        print('\n'+self.show(reverse,bool(info),bool(RICH)))
-                        print("Color changed successfully. ")
-                    except:
-                        if which in ['w','white','1']: WHITE = old
-                        elif which in ['black','0','b']: BLACK = old
-                        elif which in ['blank','empty','2','e']: EMPTY = old
-                        print("Invalid color.")
-                    continue
-                else:
-                    print("Invalid color change. Type 'color' to toggle or 'color white/black/empty COLOR'.")
-                    continue
-            elif ADMIN and move.split()[0] in ['win','forcedraw','fdraw','set','del','reset','debug']:
-                move = move.split()
-                try:
-                    match move[0]:
-                        case 'win': return color
-                        case 'forcedraw' | 'fdraw': return -1
-                        case 'set':
-                            square, name = move[1],move[2]
-                            col = color if len(move) == 3 else move[3]
-                            if col in ['w','white','1']: col = 1
-                            elif col in ['b','black','0']: col = 0
-                            else: col = color
-                            self.setpiece(square,name,col)
-                            print(f"Set piece on {square} to {"White" if col==1 else "Black"} {name.capitalize()}.")
-                            print("\n")
-                            self.view()
-                        case 'del':
-                            square = move[1]
-                            p = self.lookup(square)
-                            if p is None: print(f"No piece on {square}.")
-                            else: print(f"Deleted {p.type.capitalize()} on {square}.")
-                            del self[square]
-                            print("\n")
-                            self.view()
-                        case 'reset':
-                            self.clear()
-                            self.setup()
-                            print("\n")
-                            self.view()
-                        case 'debug': print(f"whitemoved: {self.whitemoved} | blackmoved: {self.blackmoved} (a8,e8,h8)\nWhite King: {self.white_king} | Black King: {self.black_king}\nCaptured white: [{','.join(str(p) for p in self.white_captured)}] | Captured black: [{','.join(str(p) for p in self.black_captured)}]\nWhite enpassant: {self.white_enpassant} | Black enpassant: {self.black_enpassant}\nWhite eval: {self.advantage()} | Color={color}, Info={info}, Swap={swap}, Bot={botplay}\n")
-                except Exception as e:
-                    print("Invalid command usage. Type 'help' for info.")
-                    if DEBUGGING: print(f"[Debug] Error: {e}")
-                continue
-            try:
-                move = self.explicit(move,color)
-                if move is None:
-                    print("Illegal move.\n")
-                    continue
-                outcome = self.handle_turn(move=move,color=color)
-                if isinstance(outcome,str): # Pawn promotion
-                    print("\n")
-                    self.view(color, info)
-                    pprint(f"\nPawn at {outcome} can be promoted: ''/1/Q = Queen | 2/N = Knight | 3/R = Rook | 4/B = Bishop")
-                    if RICH: print(f"{f"[{WHITE}][White][/{WHITE}]" if color==1 else f"[{BLACK}][Black][/{BLACK}]"} ",end='')
-                    try: promo = input("> ")
-                    except: quit()
-                    match promo:
-                        case '2' | 'n': promo = 'knight'
-                        case '3' | 'r': promo = 'rook'
-                        case '4' | 'b': promo = 'bishop'
-                        case _: promo = 'queen'
-                    self.setpiece(outcome, name=promo)
-                    if LOGS: print(f"Promoted pawn on {outcome} to a {promo.capitalize()}.")
-                if outcome: break
-                else: continue
-            except Exception as e:
-                print("Unknown input. Type 'help' for info.")
-                if DEBUGGING: print(f"[Admin Log]: Error | {e}\n")
-        return True
-    
-    def mainloop(self, botplay: tuple | None = None) -> int:
-        """Full match. If reverse is False, only show board in main orientation. Handles checkmate & stalemate. Returns who won, or -1 for tie."""
-        color = 1
-        info = 1
-        swap = 0
-        while True:
-            print(SEP)
-            print(f"\n{f"[{WHITE}]White[/{WHITE}]" if color==1 else f"[{BLACK}]Black[/{BLACK}]"}'s turn.")
-            stats = [color, info, swap]
-            status = self.turn(stats, botplay=botplay)
-            if status is False: break
-            elif type(status)==int:
-                if status == -1: print("The match ends in a draw.")
-                else: print(f"{f"[{WHITE}]White[/{WHITE}]" if status==1 else f"[{BLACK}]Black[/{BLACK}]"} wins!\n")
-                return status
-            color = int(not color)
-            if self.stalemate(color) or self.drawmate():
-                print(SEP)
-                self.view(1,info)
-                print(f"[bold]Stalemate![/bold]")
-                return -1
-            if self.checkmate(color):
-                print(SEP)
-                self.view(1,info)
-                print(f"\n[bold]Checkmate![/bold] {f"[{WHITE}]White[/{WHITE}]" if color==0 else f"[{BLACK}]Black[/{BLACK}]"} has won.")
-                return int(not color)
-            if isinstance(status,list):
-                for i,s in enumerate(status):
-                    if i == 0: color = int(s)
-                    if i == 1: info = int(s)
-                    if i == 2: swap = int(s)
 
 class Piece:
     def __init__(self, type: str, color: int, board: Board | None = None):
@@ -1043,119 +745,8 @@ class Piece:
         C = lambda X: True if override else (self.board.lookup(X) is not None and self.board.lookup(X).color != self.color)
         return enpassant+list(filter(lambda x: 0<=x[0]<self.board.W and 0<=x[1]<self.board.H and C(x),[(x+dx,y+dy) for dx,dy in options]))
 
-def superloop():
-    """Full terminal experience."""
-    global ADMIN,DEBUG
-    HELP = "Options:\n1. Player vs player. | 2. Player vs bot. | 3. Load previous game. | 4. Stats. | 0. Quit. || Cmds: 'admin', 'debug'"
-    print("[bold underline]PyChess[/bold underline]\n")
-    pprint(HELP)
-    white, black, total, botwins = 0,0,0,0
-    quitcheck = False
-    while True:
-        try: choice = input("\n[PyChess] > ").lower()
-        except:
-            pprint("Quitting...")
-            break
-        match choice:
-            case '1' | 'pvp':
-                board = Board(filled=True)
-                result = board.mainloop()
-                if result == 1: white += 1
-                elif result == 0: black += 1
-                else:
-                    white += 1
-                    black += 1
-                total += 1
-            case '2' | 'bot':
-                try: logic = input("Choose difficulty:\n1. Easy | 2. Medium | 3. Hard | 4. Impossible\n> ")
-                except:
-                    print("Quitting...")
-                    break
-                match logic:
-                    case '1': logic = 3 # No captures
-                    case '2': logic = 1 # Random
-                    case '3': logic = 2 # Captures
-                    case '4': logic = 4 # API
-                    case 'q' | 'x':
-                        print("Cancelled")
-                        continue
-                    case _:
-                        print("Invalid difficulty. Defaulting to Medium.")
-                        logic = 1
-                color = input("\nChoose your color, or leave blank to pick white:\n1. White | 2. Black | 3. Random\n> ")
-                match color:
-                    case '1' | '': color = 0 # Color of bot
-                    case '2': color = 1
-                    case '3': 
-                        color = random.randint(0,1)
-                        pprint(f"Randomly assigned to {'White' if color == 0 else 'Black'}.")
-                diff = 'Easy' if logic == 3 else 'Medium' if logic == 1 else 'Hard' if logic == 2 else 'Impossible'
-                board = Board(filled=True)
-                if board.mainloop(botplay=(color,logic)) != color: 
-                    if logic == 3: remark = "You just dashed the bot's hopes and dreams. Perhaps try a harder difficulty for a real challenge?"
-                    elif logic == 1: remark = "You are officially better at chess than random chance. That puts you in the top 50% players... What do you mean that's not how statistics work?"
-                    elif logic == 2: remark = "Good job! You just beat a bot at the level of Magnus Carlsen. You don't believe me? Well, it tried its best, and that's what counts."
-                    else: remark = "Incredible! You just beat a genuinely powerful chess AI. I'm very impressed."
-                    print(f"[bold]Congratulations, you won against the Bot on {diff} difficulty![/bold]")
-                    pprint(remark)
-                    if color == 0: white += 1
-                    else: black += 1
-                    botwins += 1
-                else: 
-                    if logic == 3: remark = "That is... impressive, it should be impossible for it to win.\nYour chess skills are below zero, but I'm sure you have other talents!"
-                    elif logic == 1: remark = "Fun fact, this bot plays completely at random. So don't feel bad for losing, there was a nonzero chance it played like a Grandmaster!"
-                    elif logic == 2: remark = "Don't worry, you'll improve with practice. Perhaps try a lower difficulty?"
-                    else: remark = "This is a true AI bot, so losing to it is expected. Good attempt, however!"
-                    print(f"You lost against the Bot on {diff} difficulty.")
-                    pprint(remark)
-                    if color == 0: black += 1
-                    else: white += 1
-                total += 1
-            case '3' | 'load':
-                default = SAVEPATH
-                try: file = input(f"Press enter to load '{default}', or input file name: ").lower()
-                except:
-                    print("Quitting...")
-                    break
-                if not file: file = SAVEPATH
-                elif file in ['x','cancel']:
-                    print("Cancelled.")
-                    continue
-                board = Board()
-                if board.load(file): print("Loading game...")
-                else:
-                    print(f"Unable to find '{file}'.")
-                    continue
-                result = board.mainloop()
-                if result == 1: white += 1
-                elif result == 0: black += 1
-                else:
-                    white += 1
-                    black += 1
-                total += 1
-            case '4' | 'stats':
-                wperc = 0 if white+black == 0 else 100*white/(white+black)
-                bperc = 0 if white+black == 0 else 100-wperc
-                pprint(f"Total Games: {total} | White wins: {white} ({wperc}%) | Black wins: {black} ({bperc}%) | Wins vs Bot: {botwins}")
-            case 'admin':
-                ADMIN = not ADMIN
-                print(f"ADMIN toggled {'ON' if ADMIN else 'OFF'}.")
-            case 'debug':
-                DEBUG = not DEBUG
-                print(f"DEBUG toggled {'ON' if DEBUG else 'OFF'}.")
-            case 'help' | 'h':
-                pprint(HELP)
-            case '0' | 'quit' | 'x':
-                pprint("Quitting...")
-                break
-            case '':
-                if quitcheck: break
-                print("Input nothing again to quit.")
-                quitcheck = True
-            case _:
-                print("Unknown input. Type 'help'.")
+# ____________________________________________________________________________________
 
-# ____________________________________________________________________________________________________________________________
 pygame.font.init()
 
 WIDTH -= (WIDTH-2*GAPX)%8
@@ -1438,7 +1029,7 @@ class PyBoard(Board):
     def drawhelp(self) -> pygame.rect:
         """Renders keybind help screen. Returns 'back' button."""
         self.win.fill(MENUBG)
-        text = "Menu Keybinds:\nA = Toggle Admin\nC = Toggle Console Logs\n\nMatch Keybinds:\nS = Toggle board swapping | I = Toggle move info\nQ = Resign | D = Offer draw | U = Undo | R = Redo\nEscape = Menu"
+        text = "Menu Keybinds:\nA = Toggle Admin\nC = Toggle Console Logs\n\nMatch Keybinds:\nS = Toggle board swapping | Escape = Menu\nQ = Resign | D = Offer draw | U = Undo | R = Redo"
         text += "\n\nAdmin:\nO = Override color | L = Lock turn | N = Random move\nH = Hint | E = eval | U/R = Undo/Redo (player)\nK = Delete piece | M = Move highlighted\n0/1 = Convert piece to black/white\nP = Add piece. Press Q/R/B/N/P, custom: K/A/E/D/X\nG = Save board | F = Print FEN"
         y = HEIGHT//20
         for line in text.splitlines():
@@ -1479,7 +1070,7 @@ def pyloop():
         while menu:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    if LOGS: pprint("Quitting...")
+                    if LOGS: print("Quitting...")
                     pygame.quit()
                     return
                 elif event.type == pygame.KEYDOWN:
@@ -1491,7 +1082,7 @@ def pyloop():
                         LOGS = not LOGS
                         print(f"LOGS toggled {"ON" if LOGS else "OFF"}")
                     elif event.key in [pygame.K_ESCAPE,pygame.K_q]:
-                        if LOGS: pprint("Quitting...")
+                        if LOGS: print("Quitting...")
                         pygame.quit()
                         return
                 elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -1512,7 +1103,7 @@ def pyloop():
                         while True:
                             for event in pygame.event.get():
                                 if event.type == pygame.QUIT:
-                                    if LOGS: pprint("Quitting...")
+                                    if LOGS: print("Quitting...")
                                     pygame.quit()
                                     return
                                 elif event.type == event.type==pygame.KEYDOWN:
@@ -1545,7 +1136,7 @@ def pyloop():
                         while True:
                             for event in pygame.event.get():
                                 if event.type == pygame.QUIT:
-                                    if LOGS: pprint("Quitting...")
+                                    if LOGS: print("Quitting...")
                                     pygame.quit()
                                     return
                                 elif event.type == event.type==pygame.KEYDOWN:
@@ -1595,14 +1186,14 @@ def pyloop():
                         while not done:
                             for event in pygame.event.get():
                                 if event.type == pygame.QUIT:
-                                    if LOGS: pprint("Quitting...")
+                                    if LOGS: print("Quitting...")
                                     pygame.quit()
                                     return
                                 elif event.type == pygame.MOUSEBUTTONDOWN and back.collidepoint(*pygame.mouse.get_pos()): done = True
                                 elif event.type == pygame.KEYDOWN and event.key in [pygame.K_ESCAPE,pygame.K_q,pygame.K_x]: done = True
                         board.drawmenu((white,black),cont = save)
                     elif buttons[4].collidepoint(mx,my): # Quit
-                        if LOGS: pprint("Quitting...")
+                        if LOGS: print("Quitting...")
                         pygame.quit()
                         return
                     elif save is not None and buttons[5].collidepoint(mx,my): # Continue
@@ -1643,7 +1234,7 @@ def pyloop():
             while turn:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
-                        if LOGS: pprint("Quitting...")
+                        if LOGS: print("Quitting...")
                         pygame.quit()
                         return
                     elif event.type == pygame.KEYDOWN:
@@ -1657,13 +1248,11 @@ def pyloop():
                             board.swapped = SWAPPING and not bool(color)
                             board.draw(update=True,col=color)
                             if LOGS: print(f"Swapping toggled {"ON" if SWAPPING else 'OFF'}.")
-                        elif event.key == pygame.K_i:
-                            board.info = not board.info
-                            if LOGS: print(f"Info toggled {"ON" if board.info else "OFF"}.")        
                         elif event.key == pygame.K_f and ADMIN:
                             print(board.tofen(color))
                         elif event.key == pygame.K_o and ADMIN:
                             COLOROVERRIDE = not COLOROVERRIDE
+                            HISTORY = False
                             if LOGS: print(f"Override toggled {"ON" if COLOROVERRIDE else 'OFF'}.")
                         elif event.key == pygame.K_l and ADMIN:
                             HISTORY = False
@@ -1683,9 +1272,7 @@ def pyloop():
                             square = MOVE[-2:]
                             break
                         elif event.key == pygame.K_e and ADMIN:
-                            print("Board evaluation:")
-                            if HISTORY: print(api(board.tofen(color),ev=True))
-                            else: print(board.advantage(1))
+                            print(f"Board evaluation: {board.advantage(color)}")
                         elif event.key == pygame.K_k and ADMIN:
                             HISTORY = False
                             square = board.getsquare(pygame.mouse.get_pos())
@@ -1761,7 +1348,7 @@ def pyloop():
                                 while True:
                                     for event in pygame.event.get():
                                         if event.type == pygame.QUIT:
-                                            if LOGS: pprint("Quitting...")
+                                            if LOGS: print("Quitting...")
                                             pygame.quit()
                                             return
                                         elif event.type == pygame.KEYDOWN:
@@ -1788,7 +1375,7 @@ def pyloop():
                             while True:
                                 for event in pygame.event.get():
                                     if event.type == pygame.QUIT:
-                                        if LOGS: pprint("Quitting...")
+                                        if LOGS: print("Quitting...")
                                         pygame.quit()
                                         return
                                     elif event.type == pygame.KEYDOWN:
@@ -1801,7 +1388,7 @@ def pyloop():
                                 if choice: break
                             if choice == 1:
                                 forceres = int(not color)
-                                turn = False
+                                turn, MOVE = False, None
                             else: board.draw(update=True,col=color)
                         elif event.key == pygame.K_d and botplay is None and not asked_draw:
                             btns = board.drawsurr(color, draw=True)
@@ -1810,7 +1397,7 @@ def pyloop():
                             while True:
                                 for event in pygame.event.get():
                                     if event.type == pygame.QUIT:
-                                        if LOGS: pprint("Quitting...")
+                                        if LOGS: print("Quitting...")
                                         pygame.quit()
                                         return
                                     elif event.type == pygame.KEYDOWN:
@@ -1823,7 +1410,7 @@ def pyloop():
                                 if choice: break
                             if choice == 1:
                                 forceres = -1
-                                turn = False
+                                turn,MOVE = False,None
                             else: board.draw(update=True,col=color)
                     elif event.type == pygame.MOUSEBUTTONDOWN and pygame.mouse.get_pressed()[0]: # Left click
                         pos = pygame.mouse.get_pos()
@@ -1909,7 +1496,7 @@ def pyloop():
                     promo = None
                     for event in pygame.event.get():
                         if event.type == pygame.QUIT:
-                            if LOGS: pprint("Quitting...")
+                            if LOGS: print("Quitting...")
                             pygame.quit()
                             return
                         elif event.type == pygame.KEYDOWN:
@@ -1964,7 +1551,7 @@ def pyloop():
         while endscreen:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    if LOGS: pprint("Quitting...")
+                    if LOGS: print("Quitting...")
                     pygame.quit()
                     return
                 elif event.type == pygame.KEYDOWN:
@@ -1981,6 +1568,8 @@ def pyloop():
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     mx,my = pygame.mouse.get_pos()
                     if buttons[0].collidepoint(mx,my): # Play again
+                        COLOROVERRIDE,LOCKTURN=False,False
+                        HISTORY = HISTORY_ORIGINAL
                         endscreen, menu, match = False, False, True
                         color = 1
                         MOVE = None
@@ -1990,6 +1579,6 @@ def pyloop():
                     elif buttons[1].collidepoint(mx,my): # Menu
                         endscreen, menu = False, True
                         save = None
+
 if __name__ == '__main__':
-    if TERMINAL: superloop()
-    else: pyloop()
+    pyloop()
